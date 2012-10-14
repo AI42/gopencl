@@ -46,20 +46,21 @@ func getPlatformByID(id C.cl_platform_id) (p *Platform, err error) {
     devices: make([]*Device, int(numDevices)),
   }
 
-  strMap := []struct {
-    dst  *string
+  var str [4096]byte
+  getMap := []struct {
     info C.cl_platform_info
+    dst  interface{}
+    hold interface{}
   }{
-    {&p.name, C.CL_PLATFORM_NAME},
-    {&p.profile, C.CL_PLATFORM_PROFILE},
-    {&p.vendor, C.CL_PLATFORM_VENDOR},
-    {&p.version, C.CL_PLATFORM_VERSION},
+    {C.CL_PLATFORM_NAME, &p.name, &str},
+    {C.CL_PLATFORM_PROFILE, &p.profile, &str},
+    {C.CL_PLATFORM_VENDOR, &p.vendor, &str},
+    {C.CL_PLATFORM_VERSION, &p.version, &str},
+    {C.CL_PLATFORM_EXTENSIONS, &p.extensions, &str},
   }
 
-  for _, s := range strMap {
-    var str [256]byte
-
-    if _, err = getPlatformInfo(id, s.info, &str, s.dst); err != nil {
+  for _, v := range getMap {
+    if _, err = getPlatformInfo(id, v.info, v.hold, v.dst); err != nil {
       return
     }
   }
@@ -98,6 +99,10 @@ func getPlatforms() (ps []*Platform, err error) {
 
 func (p *Platform) Devices() []*Device {
   return p.devices
+}
+
+func (p *Platform) Extensions() []string {
+  return p.extensions
 }
 
 func (p *Platform) Name() string {
